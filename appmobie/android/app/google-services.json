@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "161208626137",
+    "project_id": "appmobie-auth-001",
+    "storage_bucket": "appmobie-auth-001.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:161208626137:android:9755c568a183fc3d9d47c8",
+        "android_client_info": {
+          "package_name": "com.example.appmobie"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQCszMktZeAWHWh17cgMj1zXvpvmApC7U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
