@@ -1,0 +1,26 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "appmobie-auth-001",
+          "appId": "1:161208626137:android:9755c568a183fc3d9d47c8",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "appmobie-auth-001",
+          "configurations": {
+            "android": "1:161208626137:android:9755c568a183fc3d9d47c8",
+            "ios": "1:161208626137:ios:85878d71b985f2339d47c8",
+            "web": "1:161208626137:web:7cb3cd08120303f09d47c8"
+          }
+        }
+      }
+    }
+  },
+  "emulators": {
+    "singleProjectMode": true
+  }
+}

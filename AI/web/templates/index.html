@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Trợ lý Chat CV</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --bg: #f5f6fa;
+      --white: #fff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg);
+      color: #111827;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      text-align: center;
+      padding: 24px 0 8px;
+    }
+
+    header h1 {
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      max-width: 800px;
+      margin: auto;
+      width: 100%;
+      background: var(--white);
+      border-radius: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+
+    .chat-container {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .message-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .message-row.user {
+      flex-direction: row-reverse;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #e0e7ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 16px;
+      color: var(--primary);
+    }
+
+    .bubble {
+      background: #f3f4f6;
+      padding: 14px 16px;
+      border-radius: 16px;
+      max-width: 75%;
+      font-size: 15px;
+      white-space: pre-wrap;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+
+    .message-row.user .bubble {
+      background: #e0e7ff;
+    }
+
+    .input-area {
+      border-top: 1px solid #eee;
+      padding: 16px;
+      background: var(--bg);
+    }
+
+    .input-area form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    textarea {
+      resize: none;
+      padding: 14px;
+      font-size: 15px;
+      border-radius: 16px;
+      border: 1px solid #ccc;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+
+    .input-tools {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="file"] {
+      font-size: 14px;
+    }
+
+    button {
+      background-color: var(--primary);
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 16px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #4338ca;
+    }
+
+    .loader {
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    /* Markdown styling inside .bubble */
+    .bubble h1, .bubble h2, .bubble h3 {
+      font-weight: 600;
+      margin: 12px 0 4px;
+      color: #1f2937;
+    }
+
+    .bubble p {
+      margin: 8px 0;
+      line-height: 1.6;
+    }
+
+    .bubble ul {
+      padding-left: 20px;
+      margin: 8px 0;
+    }
+
+    .bubble ul li {
+      margin-bottom: 6px;
+      list-style-type: disc;
+    }
+
+    .bubble strong {
+      color: #111827;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>💬 Trợ lý Chat CV</h1>
+  </header>
+
+  <div class="main">
+    <div class="chat-container" id="chatContainer"></div>
+
+    <div class="input-area">
+      <form id="chatForm" enctype="multipart/form-data">
+        <textarea id="question_users" placeholder="Gõ câu hỏi của bạn..." rows="2" required></textarea>
+        <div class="input-tools">
+          <input type="file" id="files" accept=".pdf" />
+          <button type="submit">Gửi</button>
+        </div>
+        <div class="loader" id="loader" style="display:none;">Đang phản hồi...</div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const chatContainer = document.getElementById('chatContainer');
+    const chatForm = document.getElementById('chatForm');
+    const loader = document.getElementById('loader');
+    const fileInput = document.getElementById('files');
+
+    function appendMessage(content, sender, isMarkdown = false) {
+      const row = document.createElement('div');
+      row.className = `message-row ${sender}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar';
+      avatar.textContent = sender === 'user' ? '🧑' : '🤖';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      if (isMarkdown) {
+        bubble.innerHTML = marked.parse(content);
+      } else {
+        bubble.textContent = content;
+      }
+
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      chatContainer.appendChild(row);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    chatForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const question = document.getElementById('question_users').value.trim();
+      const file = fileInput.files[0];
+
+      if (!question && !file) return;
+
+      if (question) appendMessage(question, 'user');
+      if (file) appendMessage(`📎 Đã gửi tệp: **${file.name}**`, 'user', true);
+
+      document.getElementById('question_users').value = '';
+      loader.style.display = 'block';
+
+      const formData = new FormData();
+        if (question) formData.append('question_users', question);
+
+        if (file) {
+          formData.append('files', file);
+        } else {
+          // Không có file mới, gửi cờ dùng lại file cũ
+          formData.append('use_previous_file', 'true');
+        }
+
+        // Reset file input
+        fileInput.value = '';
+
+
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        loader.style.display = 'none';
+        const contentType = response.headers.get("content-type");
+
+        if (contentType && contentType.includes("application/json")) {
+          const data = await response.json();
+          appendMessage(data.answer || "🤖 Không có phản hồi từ hệ thống.", 'bot', true);
+        } else {
+          const text = await response.text();
+          appendMessage("⚠️ Lỗi phản hồi:\n" + text, 'bot');
+        }
+      } catch (err) {
+        loader.style.display = 'none';
+        appendMessage("⚠️ Lỗi kết nối: " + err.message, 'bot');
+      }
+    });
+  </script>
+</body>
+</html>

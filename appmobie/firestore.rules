@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ========= Helper functions =========
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.admin == true)
+        || exists(/databases/$(database)/documents/admin/$(request.auth.uid))
+      );
+    }
+
+    // ========= 1. Collection admin =========
+    match /admin/{uid} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ========= 2. Collection JobCareers =========
+    match /JobCareers/{jobId} {
+      allow read: if true;
+
+      allow create: if isSignedIn()
+        && (
+          request.resource.data.ownerId == request.auth.uid
+          || isAdmin()
+        )
+        && request.resource.data.keys().hasAll(['Company','Job','Location','Salary','createdAt','ownerId'])
+        && request.resource.data.Company is string
+        && request.resource.data.Job is string
+        && request.resource.data.Location is string
+        && request.resource.data.Salary is string;
+
+      // allow update/delete by owner or admin
+      allow update, delete: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid || isAdmin()
+      );
+    }
+
+    // ========= 3. Favorites =========
+    // Store favorites under users/{userId}/favorites/{favId}
+    match /users/{userId}/favorites/{favId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.jobId is string
+        && request.resource.data.jobId.size() > 0;
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+      allow update: if false;
+    }
+
+    // ========= 4. Collection JobApplications =========
+    match /JobApplications/{appId} {
+      allow read: if isSignedIn() && (resource.data.applicantId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn()
+        && request.resource.data.applicantId == request.auth.uid
+        && request.resource.data.keys().hasAll(['jobId','applicantId','applicantName','applicantEmail','createdAt'])
+        && request.resource.data.jobId is string
+        && request.resource.data.applicantId is string
+        && request.resource.data.applicantEmail is string;
+      allow update, delete: if isSignedIn() && (resource.data.applicantId == request.auth.uid || isAdmin());
+    }
+
+    // ========= 5. Collection notifications =========
+    match /notifications/{notifId} {
+      allow create: if isSignedIn() && isAdmin();
+      allow read: if isSignedIn() && (isAdmin() || resource.data.toUid == request.auth.uid);
+      allow update, delete: if isSignedIn() && isAdmin();
+    }
+
+    // ========= 6. Collection cvs =========
+    match /cvs/{cvId} {
+      allow read: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.keys().hasAll(['name','email','summary','ownerId','createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.email is string
+        && request.resource.data.summary is string;
+      allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    // ========= 7. FALLBACK (must be last) =========
+    match /{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
